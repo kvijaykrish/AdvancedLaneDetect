@@ -13,78 +13,7 @@ Advanced Lane Detection consists of the following steps:
 
 ## Camera Calibration
 ### Finding chessboard corners, Drawing detected corners on an image
-
-
-```python
-import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import glob
-%matplotlib inline
-
-def find_chessboard_corners():
-    # prepare object points
-    nx = 9 #TODO: enter the number of inside corners in x
-    ny = 6 #TODO: enter the number of inside corners in y
-
-    # Make a list of calibration images
-    images = glob.glob('./camera_cal/calibration*.jpg')
-
-    objpoints = [] #3d Real world space
-    imgpoints = [] #2D image plane
-
-    objp = np.zeros((ny*nx,3),np.float32)
-
-    objp[:,:2] = np.mgrid[0:nx,0:ny].T.reshape(-1,2) #x,y coordinates
-    #fname = './camera_cal/calibration1.jpg'
-
-    for fname in images:
-        img = mpimg.imread(fname)
-        # Convert to grayscale
-        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        #plt.imshow(gray,'gray')
-        #plt.show()
-        # Find the chessboard corners
-        ret, corners = cv2.findChessboardCorners(gray, (nx, ny), None)
-        print (fname, ret)
-        # If found, draw corners
-        if ret == True:
-            imgpoints.append(corners)
-            objpoints.append(objp)
-            # Draw and display the corners
-            cv2.drawChessboardCorners(img, (nx, ny), corners, ret)
-            #plt.imshow(img)
-            #plt.show()
-    return imgpoints, objpoints
-```
-
 ### Camera calibration, Undistorting a test image
-
-
-```python
-def calibrateCamera(image, objpoints, imgpoints):
-    # Read in an image
-    #img = cv2.imread('calibration_test1.jpg')
-    img = image
-    # Convert to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    
-    # performs the camera calibration, image distortion correction and 
-    # returns the undistorted image
-    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-    undistorted = cv2.undistort(img, mtx, dist, None, mtx)
-
-    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
-    f.tight_layout()
-    ax1.imshow(img)
-    ax1.set_title('Original Image', fontsize=50)
-    ax2.imshow(undistorted)
-    ax2.set_title('Undistorted Image', fontsize=50)
-    plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
-    return mtx, dist
-```
-
 ## Perspective Transform
 
 A perspective transform maps the points in a given image to different, desired, image points with a new perspective. The perspective transform you’ll be most interested in is a bird’s-eye view transform that let’s us view a lane from above; this will be useful for calculating the lane curvature later on. Aside from creating a bird’s eye view representation of an image, a perspective transform can also be used for all kinds of different view points.
@@ -100,39 +29,9 @@ A perspective transform maps the points in a given image to different, desired, 
     Use cv2.getPerspectiveTransform() to get M, the transform matrix
     use cv2.warpPerspective() to apply M and warp your image to a top-down view
 
-
+Please refer the section on Pipeline for the resulst on Camera calibarion and undistorting a test image
 
 ## Gradient Threshold, Sobel Operator
-
-
-```python
-# Read in an image
-im = cv2.imread('./test_images/test6.jpg')
-
-#need to pass a single color channel to the cv2.Sobel() function, so first convert it to grayscale
-gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-#Calculate the derivative in the x direction (the 1, 0 at the end denotes x direction):
-sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0)
-#Calculate the derivative in the y direction (the 0, 1 at the end denotes y direction):
-sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1)
-#Calculate the absolute value of the x derivative:
-abs_sobelx = np.absolute(sobelx)
-#Convert the absolute value image to 8-bit:
-scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
-
-thresh_min = 50
-thresh_max = 100
-sxbinary = np.zeros_like(scaled_sobel)
-sxbinary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
-plt.imshow(sxbinary, cmap='gray')
-```
-
-
-
-
-    <matplotlib.image.AxesImage at 0x7f441511a198>
-
-
 
 
 ![png](./output_images/output_7_1.png)
@@ -141,44 +40,6 @@ plt.imshow(sxbinary, cmap='gray')
 ## HLS and Color Thresholds
 Here I'll read in the same original image (the image above), convert to grayscale, and apply a threshold that identifies the lines:
 
-
-```python
-import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-
-image = mpimg.imread('./test_images/test6.jpg')
-print('Original Image')
-plt.imshow(image)
-plt.show()
-thresh = (180, 255)
-gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-binary = np.zeros_like(gray)
-binary[(gray > thresh[0]) & (gray <= thresh[1])] = 1
-print('Gray Thresold')
-plt.imshow(binary, cmap='gray')
-plt.show()
-hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-H = hls[:,:,0]
-L = hls[:,:,1]
-S = hls[:,:,2]
-print('H Gray')
-plt.imshow(H, cmap='gray')
-plt.show()
-print('L Gray')
-plt.imshow(L, cmap='gray')
-plt.show()
-print('S Gray')
-plt.imshow(S, cmap='gray')
-plt.show()
-thresh = (90, 255)
-binary = np.zeros_like(S)
-binary[(S > thresh[0]) & (S <= thresh[1])] = 1
-print('S binary')
-plt.imshow(binary, cmap='gray')
-plt.show()
-```
 
     Original Image
 
@@ -221,40 +82,6 @@ plt.show()
 
 ![png](./output_images/output_9_11.png)
 
-
-
-```python
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import numpy as np
-import cv2
-
-# Read in an image, you can also try test1.jpg or test4.jpg
-image = mpimg.imread('./test_images/test6.jpg') 
-
-# Define a function that thresholds the S-channel of HLS
-# Use exclusive lower bound (>) and inclusive upper (<=)
-def hls_select(img, thresh=(0, 255)):
-    # 1) Convert to HLS color space
-    hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-    # 2) Apply a threshold to the S channel
-    s_channel = hls[:,:,2]
-    binary_output = np.zeros_like(s_channel)
-    binary_output[(s_channel > thresh[0]) & (s_channel <= thresh[1])] = 1
-    # 3) Return a binary image of threshold result
-    return binary_output
-    
-hls_binary = hls_select(image, thresh=(90, 255))
-
-# Plot the result
-f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
-f.tight_layout()
-ax1.imshow(image)
-ax1.set_title('Original Image', fontsize=50)
-ax2.imshow(hls_binary, cmap='gray')
-ax2.set_title('Thresholded S', fontsize=50)
-plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
-```
 
 
 ![png](./output_images/output_10_0.png)
